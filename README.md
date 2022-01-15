@@ -1,6 +1,8 @@
 # TipsyCoin
 
-Solidity contracts and Hardhat tests for TipsyCoin.io
+Solidity contracts and Hardhat tests for TipsyCoin.io.
+
+Currently, the team is still hard at work testing the contracts before the audit scheduled for the 20th. So some debug and testing code is still present, and small changes to the contracts are likely. Please make sure to grab the latest code on the 20th, and ensure this message has been removed, which indicates a green light. Thanks!
 
 ## Introduction
 TipsyCoin is a Safemoon style token with a number of design changes
@@ -36,7 +38,7 @@ To discourage bots, a noBots modifier is used on all Transfers that checks wheth
 
 ## Contract list
 ### TipsyCoin.sol 
-The main contract. After Initialization(), at launch, AddLiquidity() is called during Go Time. All LP tokens minted during the AddLiquidity() event are sent to TokenLocker, which locks the LP for 5 years. All additional LP created (for example during Buybacks) is also sent to TokenTimeLock.sol. Only sells are taxed, in the manner described in Design Notes above
+The main contract. After Initialization(), at launch, AddLiquidity() is called during Go Time. All LP tokens minted during the AddLiquidity() event are sent to TokenLocker, which locks the LP for 5 years. All additional LP created (for example during Buybacks) is also sent to TokenTimeLock.sol. Only sells are taxed, in the manner described in Design Notes above.
 
 ### TokenTimeLock.sol 
 Small auxiliary contract that holds the LP tokens minted above. Since this contract is 'single use', it doesn't use a proxy pattern, and is instead deployed directly from TipsyCoin.sol, using Create(). The Benificary() of this contract is set to the address of TipsyCoin.sol, and the LP Release() may be called by anyone. Then, LP may be Salvaged() by the current Owner() of TipsyCoin.sol and redeemed, burned, or locked again.
@@ -45,7 +47,7 @@ Small auxiliary contract that holds the LP tokens minted above. Since this contr
 This contract vests the number of TipsyCoin over a 12 month period. This is used for the DeveloperFund. The tokens vested from the contract are send to a seperate TokenDistribution contract, so they can be distributed accordingly. The Release() function by be called by anyone, but is intended to be called Weekly or Monthly
 
 ### TokenDistribution.sol
-This contract recieves tokens from the TokenVesting.sol. Anyone can call Distribute(), and the contract weights and distributes tokens to the array of developers and their weighting score
+This contract recieves tokens from the TokenVesting.sol. Anyone can call Distribute(), and the contract then distributes tokens to the list of team members according to their weighting score.
 
 ### BuyBack.sol
 This contract recieves WBNB from the sell tax as described in TipsyCoin allocated to BuyBacks. BuyBacks are used strategically (e.g. weekly). BuyBacks can also be weighted for Reflection, Burn, and AddLiquidity. Reflection buys back TipsyCoin and then distributes it to holders. Burn buys back TipsyCoin and then burns it, reducing max supply. AddLiquidity buys back half TipsyCoin, and then adds liquidity to the pool on PCS. This LP is sent to the same TokenLoker deployed by TipsyCoin, which is locked for 5 years.
