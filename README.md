@@ -65,5 +65,10 @@ Because Tipsy uses a network of contracts, the order in which they are deployed 
 8. Proxy Call BuyBack with Initialize(address TipsyCoin, address TokenLocker)
 
 ## Hardhat Guide
+(todo)
 
+## BSC Testnet Contract Addresses
+(todo)
+
+## BSC Mainnet Contract Addresses
 (todo)
