@@ -162,9 +162,9 @@ contract TokenVesting is Ownable, Initializable, ReentrancyGuard {
         if (block.timestamp >= _start + (_duration) && _revoked[address(token)] <1e19) { //covers tipsy dust
             return totalBalance;
         } else if (_revoked[address(token)] > 0) {
-            return (totalBalance * (_revoked[address(token)] - (_start)))/(_duration);
+            return (totalBalance * (_revoked[address(token)] - (_start)))/(_duration); //fixed mult issue
         } else {
-            return (totalBalance * (block.timestamp - _start))/(_duration);
+            return (totalBalance * (block.timestamp - _start))/(_duration); 
         }
     }
 }
