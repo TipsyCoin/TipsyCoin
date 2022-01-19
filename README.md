@@ -2,7 +2,7 @@
 
 Solidity contracts and Hardhat tests for TipsyCoin.io.
 
-Currently, the team is still hard at work testing the contracts before the audit scheduled for the 20th. So some debug and testing code is still present, and small changes to the contracts are likely. Please make sure to grab the latest code on the 20th, and ensure this message has been removed, which indicates a green light. Thanks!
+~~Currently, the team is still hard at work testing the contracts before the audit scheduled for the 20th. So some debug and testing code is still present, and small changes to the contracts are likely. Please make sure to grab the latest code on the 20th, and ensure this message has been removed, which indicates a green light. Thanks!~~ Should hopefully be good to go
 
 ## Introduction
 TipsyCoin is a Safemoon style token with a number of design changes
