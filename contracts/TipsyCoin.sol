@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.11;
 
 
 // OpenZeppelin Contracts v4.3.2 (token/ERC20/ERC20.sol)
@@ -18,10 +18,11 @@ abstract contract Ownable is Context {
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     /**
-     * @dev Initializes the contract setting the deployer as the initial owner.
+     * @dev Initializes the contract to the not~ 0 address. 
+     * Since we use proxies this constructor is never called, and we can use this lock to prevent someone taking over the base contract and causing confusion
+     * (addresses etc) since this being set effectively disables the base contract
      */
     constructor() {
-	//transfer to non 0 addy during constructor when deploying 4real to prevent our base contracts being taken over. Ensures only our proxy is usable
         //_transferOwnership(address(~uint160(0)));
         _transferOwnership(address(uint160(0)));
     }
@@ -79,60 +80,25 @@ abstract contract Ownable is Context {
 
 }
 
-interface WethLike {
-function deposit() external payable;
-function withdraw(uint256) external;
-}
-
 contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
     using Address for address;
 
+    //--Public View Vars
+
     address public constant DEAD_ADDRESS = 0x000000000000000000000000000000000000dEaD;
-
-    mapping(address => uint256) private _balances;
-
-    mapping(address => uint256) private _rOwned;
-    mapping(address => uint256) private _tOwned;
-    //uint256 private constant MAX = ~uint256(0);
-
-    uint256 internal _maxTxAmount = 5e8 * 10 ** decimals();
-    //uint256 private _tTotal = 100e9 * 10 ** decimals();
+    uint256 public maxTxAmount;
     uint256 public _rTotal = 1e18;
-    //uint256 private _rTotal = (MAX - (MAX % _tTotal));
-    uint256 private _tFeeTotal;
-
-    uint256 internal _buybackFundAmount = 400;
-    uint256 internal _marketingCommunityAmount = 200;
-    uint256 internal _reflexiveAmount = 400;
-
-    //address public constant WETH = 0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c;
-
-    event SellFeeCollected(
-        uint256 indexed tokensSwapped,
-        uint256 indexed ethReceived
-    );
-
-
-    mapping(address => mapping(address => uint256)) private _allowances;
-
+    uint256 public buybackFundAmount = 400;
+    uint256 public marketingCommunityAmount = 200;
+    uint256 public reflexiveAmount = 400;
     mapping(address => bool) public whiteList;
-
     mapping(address => bool) public excludedFromFee;
-
     address public pancakeSwapRouter02;
-    IPancakeRouter02 public pancakeV2Router;
     address public pancakePair;
-
-    uint  public releaseTime;
-    uint256 public _totalSupply;
-    uint256 private _maxSupply;
-
-    string private _name;
-    string private _symbol;
-
-    //address private constant WETHTest = 0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd;
-    //address private constant BUSDTest = 0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7;
-
+    //launchTime will be a short random delay after liquidity is added to PCS
+    //to discourage sniper bots from reading mempool and buying the second the addliquidity event is added to txpool
+    uint public launchTime;
+    uint256 public maxSupply;
     address public cexFund;
     address public charityFund;
     address public teamVestingFund;
@@ -142,212 +108,71 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
     address public marketingFund;
     address public lpLocker;
 
-    address[] private _tokenWETHPath;
+    //--Restricted View Vars
 
+    mapping(address => uint256) private _balances;
+    uint256 private _totalSupply;
+    mapping(address => uint256) private _rOwned;
+    mapping(address => uint256) private _tOwned;
+    mapping(address => mapping(address => uint256)) private _allowances;
+    IPancakeRouter02 internal pancakeV2Router;
+    uint256 internal _feeTotal;
+    address[] internal _tokenWETHPath;
+    string private _name;
+    string private _symbol;
+    //address private constant WETHTest = 0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd;
+    //address private constant BUSDTest = 0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7;
+    
+    //--Events
+
+    event SellFeeCollected(uint256 indexed tokensSwapped, uint256 indexed ethReceived);
     event FeesChanged(uint indexed buyBack, uint indexed marketing, uint indexed reflexive);
-
     event ExcludedFromFee(address indexed excludedAddress);
     event IncludedInFee(address indexed includedAddress);
     event IncludedInContractWhitelist(address indexed includedWhiteListedContract);
     event Burned(uint indexed oldSupply, uint indexed amount, uint indexed newSupply);
     event Reflex(uint indexed oldRFactor, uint indexed amount, uint indexed newRFactor);
-    //event ExcludedFromContractWhitelist(address indexed excludedWhiteListedContract);
-
-
+    //event ExcludedFromContractWhitelist(address indexed excludedWhiteListedContract); -> removed the function associated with this event for safety
+    
+    //--Modifiers
 
     /**
-     * @dev Sets the values for {name} and {symbol}.
-     *
-     * The default value of {decimals} is 18. To select a different value for
-     * {decimals} you should overload it.
-     *
-     * All two of these values are immutable: they can only be set once during
-     * construction.
+     * @dev 
+     * Provides some deterance to bots to prevent them from interacting with tipsy
+     * Obviously we are aware that isContract() returns false during construction, so maxTxAmount, tax on transferFrom, and launchTime params also used as further deterance
      */
-    constructor() payable {
-
-        //address bigbeef = 0xbeefa0b80F7aC1f1a5B5a81C37289532c5D85e88;
-        //Most of this stuff still mainly for testing. To be removed before final release
-        address pancakeTest = 0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3;
-        buyBackFund = address(this);
-
-        (lpLocker) = deploy(getByteCode1());
-
-        initialize(msg.sender, pancakeTest, 400, 200, 400, 0xeC0e8a3012A5a2F7d7236A8dE36ef0AbDd4fD174, 0xf6ED29517944Eae01B0D4295eCca3CaaD93419bA,
-        0x48310176265C2370684bFEEa2a915266E50bE42F, 0x707AF4bD85c76B42eEA3f2A0263724f88F891455, 0x2b379e5e3F269CA5fC6988F0F5a44Eb8BB9E19A1, 0xdDe145BA884EddFfd6849Bb3B72174F4cFd18b30);
-        pancakePair = IPancakeFactory(pancakeV2Router.factory()).createPair(address(this), pancakeV2Router.WETH());
-        require(_lockLiquidity(), "tipsy: liquidity lock failed");
-        //addLiquidity(0);
-        /*
-        cexFund = 0xeC0e8a3012A5a2F7d7236A8dE36ef0AbDd4fD174; //7%
-        charityFund = 0xf6ED29517944Eae01B0D4295eCca3CaaD93419bA; //3%
-        marketingFund = 0x48310176265C2370684bFEEa2a915266E50bE42F; //19.7%
-        communityEngagementFund = 0x707AF4bD85c76B42eEA3f2A0263724f88F891455; //4.8%
-        futureFund = 0x2b379e5e3F269CA5fC6988F0F5a44Eb8BB9E19A1; //5.5%
-        teamVestingFund = 0xdDe145BA884EddFfd6849Bb3B72174F4cFd18b30; //10%
-        */
+    modifier noBots(address recipient) {
+        require(!recipient.isContract() || whiteList[recipient], "tipsyCoin: Bots and Contracts b&");
+        _;
     }
 
-    function getByteCode1() public pure returns (bytes memory) {
+    //--View Functions
+
+    /**
+     * @dev 
+     * Gets the byte code for the timelock contract. Returns bytes
+     */
+    function getByteCodeTimelock() public pure returns (bytes memory) {
         bytes memory bytecode = type(TokenTimelock).creationCode;
         return bytecode;
     }
-
-/*    function depositWETH() internal returns (uint){
-    uint _balance = address(this).balance;
-    WethLike(WETHTest).deposit{value:address(this).balance}();
-    return _balance;
-    } */
-
-    function deploy(bytes memory _code) public returns (address addr)
-    {
-        assembly {
-            addr:= create(0,add(_code,0x20), mload(_code))
-        }
-        require(addr != address(0), "tipsy: deploy failed");
-        return addr;
-    }
-
-    function addLiquidity(uint256 _releaseTime) payable public
-    {
-        require(address(this).balance >= 1.5e10, "No eth to test, idiot");
-        //depositWETH();
-        _approve(address(this), pancakeSwapRouter02, 10e9 * 10 ** decimals());
-        whiteList[pancakePair] = true;
-        pancakeV2Router.addLiquidityETH{value:address(this).balance}(
-            address(this), 10e9 * 10 ** decimals(), 1, 1, lpLocker, block.timestamp);
-        releaseTime = _releaseTime;
-    }
-
-    function _lockLiquidity() public returns (bool)
-    {
-        //uint _balance = IERC20(pancakePair).balanceOf(address(this));
-        //IERC20(pancakePair).transfer(lpLocker, _balance);
-        //5 years
-        ITokenTimelock(lpLocker).initialize(pancakePair, address(this), block.timestamp + 1825 days);
-        return true;
-    }
-
+    /**
+     * @dev 
+     * tiny function to make checking a bunch of addresses arne't the 0 addy in the initializer
+     */
     function addyChk(address _test) internal pure returns (bool)
     {
         return uint160(_test) != 0;
     }
 
-    function initialize(address owner_, address _pancakeSwapRouter02, uint256 buybackFundAmount_, uint256 marketingCommunityAmount_, uint256 reflexiveAmount_, address _cexFund, address _charityFund, address _marketingFund, address _communityEnagementFund, address _futureFund, address _teamVestingFund) public initializer
-    {
-
-        initOwnership(owner_);
-
-        require(addyChk(_cexFund) && addyChk(_charityFund) && addyChk(_marketingFund) && addyChk(_communityEnagementFund) && addyChk(_futureFund) && addyChk(_teamVestingFund), "tipsy: initialize address must be set");
-        cexFund = _cexFund; //7%
-        charityFund = _charityFund; //3%
-        marketingFund = _marketingFund; //19.7%
-        communityEngagementFund = _communityEnagementFund; //4.8%
-        futureFund = _futureFund; //5.5%
-        teamVestingFund = _teamVestingFund; //10%
-
-
-        _buybackFundAmount = buybackFundAmount_;
-        _marketingCommunityAmount = marketingCommunityAmount_;
-        _reflexiveAmount = reflexiveAmount_;
-
-        _tFeeTotal = _buybackFundAmount + _marketingCommunityAmount + _reflexiveAmount;
-
-        _name = "TipsyCoin";
-        _symbol = "tipsy";
-        _mint(marketingFund, 19.7 * 1e9 * 10 ** decimals());
-        _mint(teamVestingFund, 10 * 1e9 * 10 ** decimals());
-        _mint(cexFund, 7 * 1e9 * 10 ** decimals());
-        _mint(charityFund, 3 * 1e9 * 10 ** decimals());
-        _mint(address(this), 10 * 1e9 * 10 ** decimals()); //Tokens to be added to LP. Should be 50
-        _mint(msg.sender, 40 * 1e9 * 10 ** decimals()); //Remove this before release
-        _mint(communityEngagementFund, 4.8 * 1e9 * 10 ** decimals());
-        _mint(futureFund, 5.5 * 1e9 * 10 ** decimals());
-        _maxSupply = 100e9 * 10 ** decimals(); //100 billion
-        require(_maxSupply == _totalSupply, "tipsy: not all supply minted");
-        _maxTxAmount = _totalSupply / 200; //0.5% of max supply
-        _rTotal = 1e18; // reflection ratio starts at 1.0
-        require(_realToReflex(1e18) == 1e18, "tipsy: reflex adjustment didn't work");
-        pancakeSwapRouter02 = _pancakeSwapRouter02;
-        pancakeV2Router = IPancakeRouter02(pancakeSwapRouter02);
-        //pancakePair = IPancakeFactory(pancakeV2Router.factory()).createPair(address(this), pancakeV2Router.WETH());
-
-        whiteList[pancakeSwapRouter02] = true;
-        excludedFromFee[pancakeSwapRouter02] = false;
-
-        whiteList[address(this)] = excludedFromFee[address(this)] = true;
-        whiteList[owner()] = excludedFromFee[owner()] = true;
-        whiteList[cexFund] = excludedFromFee[cexFund] = true;
-        whiteList[charityFund] = excludedFromFee[charityFund] = true;
-        whiteList[teamVestingFund] = excludedFromFee[teamVestingFund] = true;
-        whiteList[futureFund] = excludedFromFee[futureFund] = true;
-        whiteList[communityEngagementFund] = excludedFromFee[communityEngagementFund] = true;
-        whiteList[buyBackFund] = true;
-        whiteList[marketingFund] = excludedFromFee[marketingFund]  = true;
-
-        _tokenWETHPath = new address[](2);
-        _tokenWETHPath[0] = address(this);
-        _tokenWETHPath[1] = pancakeV2Router.WETH();
-
-    }
-
-    function adjustFees(uint buybackFundAmount_, uint marketingCommunityAmount_, uint reflexiveAmount_) public onlyOwner
-    {
-        require(buybackFundAmount_ + marketingCommunityAmount_ + reflexiveAmount_ <= _tFeeTotal, "New feeTotal > initial feeTotal");
-        _buybackFundAmount = buybackFundAmount_;
-        _marketingCommunityAmount = marketingCommunityAmount_;
-        _reflexiveAmount = reflexiveAmount_;
-        emit FeesChanged(_buybackFundAmount, _marketingCommunityAmount, _reflexiveAmount);
-    }
-
-    function excludeFromFee(address _excluded) public onlyOwner
-    {
-        excludedFromFee[_excluded] = true;
-        emit ExcludedFromFee(_excluded);
-    }
-
-    function includeInFee(address _included) public onlyOwner
-    {
-        excludedFromFee[_included] = false;
-        emit IncludedInFee(_included);
-    }
-
-    function includeInWhitelist(address _included) public onlyOwner
-    {
-        whiteList[_included] = true;
-        emit IncludedInContractWhitelist(_included);
-    }
-
-    function BuyBackAndBurn(uint _amount) public returns (bool)
-    {
-        require(IERC20(pancakeV2Router.WETH()).balanceOf(address(this)) > _amount, "tipsy: not enough balance");
-        address[] memory _WETHTokenPath = new address[](2);
-        _WETHTokenPath[0] = pancakeV2Router.WETH();
-        _WETHTokenPath[1] = address(this);
-        IERC20(_WETHTokenPath[0]).approve(pancakeSwapRouter02, _amount);
-        uint _soldtipsy = pancakeV2Router.swapExactTokensForTokens(_amount, 1, _WETHTokenPath, address(this), block.timestamp)[1];
-        _burn(address(this), _soldtipsy);
-        return true;
-    }
-
-/*
-    Mittens note: this could be added back in. But, removing PCS from the whitelist disables would disable selling of our token and is a dangerous action
-    I think it's better then, not to have this function to decrease that privelage/centralisation risk
-    function excludeFromWhitelist(address _excluded) public onlyOwner
-    {
-        whiteList[_excluded] = false;
-        emit ExcludedFromContractWhitelist(_excluded);
-    } */
-
-        function salvage(IERC20 token) public onlyOwner
-    {
-        if (address(this).balance > 0) payable(owner()).transfer(address(this).balance);
-        uint256 amount = token.balanceOf(address(this));
-        if (amount > 0) token.transfer(owner(), amount);
-    }
-
-
     /**
+     * @dev See {IERC20-allowance}.
+     */
+    function allowance(address owner, address spender) public view returns (uint256) {
+        return _realToReflex(_allowances[owner][spender]);
+    }
+
+        /**
      * @dev Returns the name of the token.
      */
     function name() public view virtual override returns (string memory) {
@@ -363,25 +188,15 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
     }
 
     /**
-     * @dev Returns the number of decimals used to get its user representation.
-     * For example, if `decimals` equals `2`, a balance of `505` tokens should
-     * be displayed to a user as `5.05` (`505 / 10 ** 2`).
-     *
-     * Tokens usually opt for a value of 18, imitating the relationship between
-     * Ether and Wei. This is the value {ERC20} uses, unless this function is
-     * overridden;
-     *
-     * NOTE: This information is only used for _display_ purposes: it in
-     * no way affects any of the arithmetic of the contract, including
-     * {IERC20-balanceOf} and {IERC20-transfer}.
+     * @dev Returns number of decimals, 18 is standard
      */
     function decimals() public view virtual override returns (uint8) {
         return 18;
     }
 
-
     /**
      * @dev See {IERC20-balanceOf}.
+     * Return value in reflect space
      */
     function balanceOf(address account) public view returns (uint256) {
         //return _balances[account];
@@ -389,12 +204,241 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
     }
 
     /**
+     * @dev See {IERC20-totalSupply}
+     * Returns in reflex space
+     */
+    function totalSupply() public view returns (uint256) {
+        return _realToReflex(_totalSupply);
+    }
+
+    /**
+     * @dev 
+     * gets a new rTotal based on amount of tokens to be removed from supply
+     */
+    function getNewRate(uint _reflectAmount) public view returns (uint _adjusted)
+    {   
+        return totalSupply() * _rTotal / (totalSupply() - _reflectAmount);
+        //return rTotalSupply() * 1e18 / (rTotalSupply() - _reflectAmount);
+    }
+
+    /**
+     * @dev 
+     * internal function to calculate reflect space balanceOf(account)
+     */
+    function _rBalanceOf(address account) internal view returns (uint256)
+    {
+        return _balances[account] * _rTotal / 1e18;
+    }
+
+    /**
+     * @dev 
+     * Multiplies real space token amount by the reflex factor (rTotal) to get reflex space tokens
+     */
+    function _realToReflex(uint _realSpaceTokens) public view returns (uint256 _reflexSpaceTokens)
+    {
+        return _realSpaceTokens * _rTotal / 1e18;
+    }
+
+    /**
+     * @dev 
+     * Divides reflex space token amount by the reflex factor (rTotal) to get real space tokens
+     */
+    function _reflexToReal(uint _reflexSpaceTokens) public view returns (uint256 _realSpaceTokens)
+    {
+    return _reflexSpaceTokens * 1e18 / _rTotal;
+    }
+
+    //--Mutative Functions
+
+    /**
+     * @dev 
+     * Deploys the current byte code. Returns address of newly deployed contract
+     */
+    function deploy(bytes memory _code) public returns (address addr)
+    {
+        assembly {
+            addr:= create(0,add(_code,0x20), mload(_code))
+        }
+        require(addr != address(0), "tipsy: deploy failed");
+        return addr;
+    }
+    
+    /**
+     * @dev 
+     * Because Tipsy is using proxy contracts, this constructor() is never called during official launch
+     * Testing code might exist in the constructor(), but will be removed before launch
+     * All constructor code should be done in the initializer() function
+     */
+    constructor() payable {
+
+        //Most of this stuff still mainly for testing. To be removed before final release
+        //address bigbeef = 0xbeefa0b80F7aC1f1a5B5a81C37289532c5D85e88;
+        address pancakeTest = 0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3;
+        //Since Timelock needs Tipsy address, and Tipsy needs Timelock address, we deploy the Timelock() from within Tipsy
+        initialize(msg.sender, pancakeTest, 0xeC0e8a3012A5a2F7d7236A8dE36ef0AbDd4fD174, 0xf6ED29517944Eae01B0D4295eCca3CaaD93419bA, 
+        0x48310176265C2370684bFEEa2a915266E50bE42F, 0x707AF4bD85c76B42eEA3f2A0263724f88F891455, 0x2b379e5e3F269CA5fC6988F0F5a44Eb8BB9E19A1, 0xdDe145BA884EddFfd6849Bb3B72174F4cFd18b30, 0x01746DeC704c33A6BAF10dB140F069fc6142c4b1);
+        //addLiquidity(0);
+        /*
+        cexFund = 0xeC0e8a3012A5a2F7d7236A8dE36ef0AbDd4fD174; //7%
+        charityFund = 0xf6ED29517944Eae01B0D4295eCca3CaaD93419bA; //3%
+        marketingFund = 0x48310176265C2370684bFEEa2a915266E50bE42F; //19.7%
+        communityEngagementFund = 0x707AF4bD85c76B42eEA3f2A0263724f88F891455; //4.8%
+        futureFund = 0x2b379e5e3F269CA5fC6988F0F5a44Eb8BB9E19A1; //5.5%
+        teamVestingFund = 0xdDe145BA884EddFfd6849Bb3B72174F4cFd18b30; //10%
+        */
+    }
+
+    function addLiquidity(uint256 _launchTime) payable public
+    {
+        //This is the "go time" function. Project can be deployed before this, and then this is called to add the LP and go live
+        //Launch time papam is used to prevent trades happening before this time. Used to prevent sniperbots scanning txpool and buying the second this function is called
+        require(address(this).balance >= 1.5e10, "No eth to test"); //testing only
+        pancakePair = IPancakeFactory(pancakeV2Router.factory()).createPair(address(this), pancakeV2Router.WETH());
+        require(_lockLiquidity(), "tipsy: liquidity lock failed");
+        _approve(address(this), pancakeSwapRouter02, 50e9 * 10 ** decimals());
+        whiteList[pancakePair] = true;
+        pancakeV2Router.addLiquidityETH{value:address(this).balance}(
+            address(this), 10e9 * 10 ** decimals(), 1, 1, lpLocker, block.timestamp);
+        launchTime = _launchTime;
+    }
+
+    function _lockLiquidity() private returns (bool)
+    {
+        //uint _balance = IERC20(pancakePair).balanceOf(address(this));
+        //IERC20(pancakePair).transfer(lpLocker, _balance);
+        //5 years
+        ITokenTimelock(lpLocker).initialize(pancakePair, address(this), block.timestamp + 1825 days);
+        return true;
+    }
+
+
+    function initialize(address owner_, address _pancakeSwapRouter02, address _cexFund, address _charityFund, address _marketingFund, address _communityEnagementFund, address _futureFund, address _teamVestingFund, address _buyBackFund) public initializer
+    {      
+        initOwnership(owner_);
+        (lpLocker) = deploy(getByteCodeTimelock());
+        require(addyChk(_cexFund) && addyChk(_charityFund) && addyChk(_marketingFund) && addyChk(_communityEnagementFund) && addyChk(_futureFund) && addyChk(_teamVestingFund) && addyChk(_buyBackFund), "tipsy: initialize address must be set");
+        buyBackFund = _buyBackFund;
+        cexFund = _cexFund; //7%
+        charityFund = _charityFund; //3%
+        marketingFund = _marketingFund; //19.7%
+        communityEngagementFund = _communityEnagementFund; //4.8%
+        futureFund = _futureFund; //5.5%
+        teamVestingFund = _teamVestingFund; //10%
+        buybackFundAmount = 400; //4% of sell
+        marketingCommunityAmount = 200; //2% of sell
+        reflexiveAmount = 400; //4% of sell
+        _feeTotal = buybackFundAmount + marketingCommunityAmount + reflexiveAmount; //10% tax total    
+        _name = "TipsyCoin";
+        _symbol = "tipsy";
+        _mint(marketingFund, 19.7 * 1e9 * 10 ** decimals()); // 19.7%
+        _mint(teamVestingFund, 10 * 1e9 * 10 ** decimals()); // 10%
+        _mint(cexFund, 7 * 1e9 * 10 ** decimals()); //7%
+        _mint(charityFund, 3 * 1e9 * 10 ** decimals()); //3%
+        _mint(address(this), 10 * 1e9 * 10 ** decimals()); //Tokens to be added to LP. Should be 50
+        _mint(msg.sender, 40 * 1e9 * 10 ** decimals()); //Testing only, should go to LP instead, remove before release, used by helper.sol atm
+        _mint(communityEngagementFund, 4.8 * 1e9 * 10 ** decimals()); //4.8%
+        _mint(futureFund, 5.5 * 1e9 * 10 ** decimals()); //5.5%
+        maxSupply = 100e9 * 10 ** decimals(); //100 billion total
+        require(maxSupply == _totalSupply, "tipsy: not all supply minted");
+        maxTxAmount = _totalSupply / 200; //0.5% of initial max supply, doesn't decrease as tokens are burned or reflected (to keep number simple -> 500 Mill)
+        _rTotal = 1e18; // reflection ratio starts at 1.0
+        pancakeSwapRouter02 = _pancakeSwapRouter02;
+        pancakeV2Router = IPancakeRouter02(pancakeSwapRouter02);
+        whiteList[pancakeSwapRouter02] = true;
+        excludedFromFee[pancakeSwapRouter02] = false;
+        whiteList[address(this)] = excludedFromFee[address(this)] = true;
+        whiteList[owner()] = excludedFromFee[owner()] = true;
+        whiteList[cexFund] = excludedFromFee[cexFund] = true;
+        whiteList[charityFund] = excludedFromFee[charityFund] = true;
+        whiteList[teamVestingFund] = excludedFromFee[teamVestingFund] = true;
+        whiteList[futureFund] = excludedFromFee[futureFund] = true;
+        whiteList[communityEngagementFund] = excludedFromFee[communityEngagementFund] = true;
+        whiteList[buyBackFund] = excludedFromFee[buyBackFund] = true;
+        whiteList[marketingFund] = excludedFromFee[marketingFund] = true;
+        _tokenWETHPath = new address[](2);
+        _tokenWETHPath[0] = address(this);
+        _tokenWETHPath[1] = pancakeV2Router.WETH();
+
+    }
+
+    /**
+     * @dev 
+     * Adjusts the fees between buyback, marketing, and reflexive rewards
+     * Has a check to ensure the fees aren't increased beyond the initial 10% (in response to certik audit of safemoon)
+     */
+    function adjustFees(uint _buybackFundAmount, uint _marketingCommunityAmount, uint _reflexiveAmount) public onlyOwner
+    {
+        require(_buybackFundAmount + _marketingCommunityAmount + _reflexiveAmount <= _feeTotal, "tipsy: new feeTotal > initial feeTotal");
+        buybackFundAmount = _buybackFundAmount;
+        marketingCommunityAmount = _marketingCommunityAmount;
+        reflexiveAmount = _reflexiveAmount;
+        emit FeesChanged(buybackFundAmount, marketingCommunityAmount, reflexiveAmount);
+    }
+
+    /**
+     * @dev 
+     * excludes an address from the fee
+     * also makes them immune to 0.5% maxTxAmount, too
+     */
+    function excludeFromFee(address _excluded) public onlyOwner
+    {
+        excludedFromFee[_excluded] = true;
+        emit ExcludedFromFee(_excluded);
+    }
+
+    /**
+     * @dev 
+     * includes an address in the fee
+     * also makes them subject to 0.5% maxTxAmount
+     */
+    function includeInFee(address _included) public onlyOwner
+    {
+        excludedFromFee[_included] = false;
+        emit IncludedInFee(_included);
+    }
+
+    /**
+     * @dev 
+     * includes an address in the contract whitelist
+     * non whitelisted contracts can't be the `recipient` of any tipsy tokens
+     * non whitelisted contracts may still be the `sender` of tokens, in an attempt to reduce chances of tokens getting stranded 
+     */
+    function includeInWhitelist(address _included) public onlyOwner
+    {
+        whiteList[_included] = true;
+        emit IncludedInContractWhitelist(_included);
+    }
+
+/*  
+    Mittens note: this could be added back in. But, revoking PCS from the whitelist would disable selling of our token and is very dangerous 
+    I think it's better not to have this function to decrease the privelage/centralisation risk
+    function excludeFromWhitelist(address _excluded) public onlyOwner
+    {
+        whiteList[_excluded] = false;
+        emit ExcludedFromContractWhitelist(_excluded);
+    } */
+
+    /**
+     * @dev Allows transfering of tokens from this contract if they get stuck or are sent to this contract by accident 
+     * Mentioned in CertiK's Safemoon audit as being a good idea
+     * Can also be used to retreive LP after 5 year timelock
+     * This contract should never own extra tokens. Extra tipsy etc is held by other contracts
+     */
+        function salvage(IERC20 token) public onlyOwner
+    {
+        if (address(this).balance > 0) payable(owner()).transfer(address(this).balance);
+        uint256 amount = token.balanceOf(address(this));
+        if (amount > 0) token.transfer(owner(), amount);
+    }
+
+    /**
      * @dev See {IERC20-transfer}.
      *
      * Requirements:
-     *
-     * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
+     * - if recipient is the 0 address, destroy the tokens and reflect
+     * - if the recipient is the dead address, destroy the tokens and reduce total supply
+     * - BuyBack contract uses transfer(0) and transfer(DEAD_ADDRESS), so there's value in keeping these accessable
      */
     function transfer(address recipient, uint256 amount) public noBots(recipient) returns (bool) {
         //Private function always handles reflex to real space, if available
@@ -420,18 +464,12 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
     }
 
     /**
-     * @dev See {IERC20-allowance}.
-     */
-    function allowance(address owner, address spender) public view returns (uint256) {
-        return _realToReflex(_allowances[owner][spender]);
-    }
-
-    /**
      * @dev See {IERC20-approve}.
      *
      * Requirements:
      *
      * - `spender` cannot be the zero address.
+     * - `amount` is in reflex space
      */
     function approve(address spender, uint256 amount) public noBots(spender) returns (bool) {
         //Private function always handles reflex to real space, if available
@@ -446,10 +484,18 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
     }
 
     //Mittens: ensure this is private before launch :)
-    function _pancakeswapSell(uint amountIn) public
+    function _pancakeswapSell(uint amountIn) internal
     {
         _approve(address(this), pancakeSwapRouter02, amountIn);
-        pancakeV2Router.swapExactTokensForTokensSupportingFeeOnTransferTokens(amountIn, 1, _tokenWETHPath, buyBackFund, block.timestamp);
+        uint256 _marketingAmount = amountIn * marketingCommunityAmount / (buybackFundAmount + marketingCommunityAmount);
+        amountIn = amountIn - _marketingAmount;
+        //Using swapExactTokensForTokens instead of swapExactTokensForTokensSupportingFeeOnTransferTokens should be OK here
+        //Because there's no tax from (this) address, and swapExactTokensForTokens gives us a return value, where as Supporting doesn't
+        pancakeV2Router.swapExactTokensForTokens(amountIn, 1, _tokenWETHPath, buyBackFund, block.timestamp);
+        pancakeV2Router.swapExactTokensForTokens(_marketingAmount, 1, _tokenWETHPath, marketingFund, block.timestamp);
+        //IERC20(_tokenWETHPath[1]).transfer(buyBackFund, amountOut * buybackFundAmount / (buybackFundAmount + _marketingCommunityAmount));
+        //IERC20(_tokenWETHPath[1]).transfer(communityEngagementFund, amountOut * _marketingCommunityAmount / (buybackFundAmount + _marketingCommunityAmount));
+
     }
 
     /**
@@ -464,34 +510,37 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
      * - `sender` must have a balance of at least `amount`.
      * - the caller must have allowance for ``sender``'s tokens of at least
      * `amount`.
+     * Charge fee if sender isn't excluded from fees
+     * This means when PCS drags tokens from user, they get taxed
+     * If sender is excluded from fee, no tax and normal tx occurs
      */
     function transferFrom(
         address sender,
         address recipient,
         uint256 amount
     ) public noBots(recipient) returns (bool) {
-
-        //Mittens note: make sure this is check is included before launch
-        //recipient.isContract() &&
         if (!excludedFromFee[sender])
-        {
-            uint _amountBuyBack = amount * _buybackFundAmount / 1e4;
-            uint _amountMarketing = amount * _marketingCommunityAmount / 1e4;
-            uint _amountReflexive = amount * _reflexiveAmount / 1e4;
+        {   
+            uint _amountBuyBack = amount * buybackFundAmount / _feeTotal;
+            uint _amountMarketing = amount * marketingCommunityAmount / _feeTotal;
+            uint _amountReflexive = amount * reflexiveAmount / _feeTotal;
 
-            //if(_amountMarketing > 0) _transfer(sender, marketingCommunityAddress, _amountMarketing);
-            if(_amountReflexive > 0)  _reflect(sender, _amountReflexive);
-            if(_amountBuyBack + _amountMarketing > 0)
-            {
-                uint _minToLiquify = pancakeV2Router.getAmountsOut(_amountBuyBack + _amountMarketing, _tokenWETHPath)[1];
-                if(_minToLiquify >= 1e9) _taxTransaction(sender, _amountBuyBack + _amountMarketing, _minToLiquify);
-                else _burn(sender, _amountBuyBack + _amountMarketing);
-            }
+        if(_amountBuyBack + _amountMarketing > 0) 
+        { 
+            uint _minToLiquify = pancakeV2Router.getAmountsOut(_amountBuyBack + _amountMarketing, _tokenWETHPath)[1];
+            if(_minToLiquify >= 1e9) _taxTransaction(sender, _amountBuyBack + _amountMarketing, _minToLiquify);
+            else _burn(sender, _amountBuyBack + _amountMarketing);
+        }
+
         amount = amount - _amountBuyBack - _amountMarketing - _amountReflexive;
         _transfer(sender, recipient, amount);
+
+        if(_amountReflexive > 0)  _reflect(sender, _amountReflexive);
+
         }
         else
         {
+        //Skip collecting fee if sender (person's tokens getting pulled) is excludedFromFee
         _transfer(sender, recipient, amount);
         }
 
@@ -504,17 +553,9 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
         return true;
     }
 
-        modifier noBots(address recipient) {
-        require(!recipient.isContract() || whiteList[recipient], "tipsyCoin: Bots and Contracts b&");
-        _;
-    }
-
-
     /**
      * @dev Atomically increases the allowance granted to `spender` by the caller.
      *
-     * This is an alternative to {approve} that can be used as a mitigation for
-     * problems described in {IERC20-approve}.
      *
      * Emits an {Approval} event indicating the updated allowance.
      *
@@ -547,45 +588,17 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
         unchecked {
             _approve(_msgSender(), spender, currentAllowance - subtractedValue);
         }
-
         return true;
     }
 
-
     /**
-     * @dev See {IERC20-totalSupply}.
+     * @dev 
+     * sets a new rTotal based on amount of tokens to be removed from supply
      */
-    function totalSupply() public view returns (uint256) {
-        return _realToReflex(_totalSupply);
-    }
-
-    function _getNewRate(uint _reflectAmount) public view returns (uint _adjusted)
+    function _setNewRate(uint _reflectAmount) internal returns (uint newRate)
     {
-        //return _rTotalSupply() * 1e18 / (_rTotalSupply() - _reflectAmount);
-        return totalSupply() * _rTotal / (totalSupply() - _reflectAmount);
-        //return rTotalSupply() * 1e18 / (rTotalSupply() - _reflectAmount);
-    }
-
-    function _setNewRate(uint _reflectAmount) public returns (uint newRate)
-    {
-        _rTotal = _getNewRate(_reflectAmount);
+        _rTotal = getNewRate(_reflectAmount);
         return _rTotal;
-    }
-
-    function _rBalanceOf(address account) public view returns (uint256)
-    {
-        return _balances[account] * _rTotal / 1e18;
-    }
-
-
-    function _realToReflex(uint _realSpaceTokens) public view returns (uint256 _reflexSpaceTokens)
-    {
-        return _realSpaceTokens * _rTotal / 1e18;
-    }
-
-    function _reflexToReal(uint _reflexSpaceTokens) public view returns (uint256 _realSpaceTokens)
-    {
-    return _reflexSpaceTokens * 1e18 / _rTotal;
     }
 
     /**
@@ -598,21 +611,27 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
      *
      * Requirements:
      *
-     * - `sender` cannot be the zero address.
-     * - `recipient` cannot be the zero address.
-     * - `sender` must have a balance of at least `amount`.
+     * - `sender` cannot be the zero address, use _mint instead
+     * - `recipient` cannot be the zero address. Use _reflect instead
+     * - `recipient` cannot be the DEAD address. Use _burn instead
+     * - `sender` must have a reflect space balance of at least `amount`
      */
     function _transfer(
         address sender,
         address recipient,
         uint256 amount
     ) internal {
-        require(sender != address(0), "ERC20: transfer from the zero address");
-        require(recipient != address(0), "ERC20: transfer to the zero address");
-        require(block.timestamp > releaseTime, "tipsy: token not tradable yet!");
-        //require(amount > 0, "tipsy: transfer amount must be greater than zero");
-        if(!whiteList[sender] && !whiteList[recipient]) require(amount <= _maxTxAmount, "tipsy: transfer amount exceeds maxTxAmount.");
-
+        require(sender != address(0), "tipsy: transfer from the zero address");
+        require(recipient != address(0), "tipsy: transfer to the zero address, use _reflect");
+        require(recipient != address(DEAD_ADDRESS), "tipsy: transfer to the DEAD_ADDRESS, use _burn");
+        require(block.timestamp > launchTime, "tipsy: token not tradable yet! Please wait");
+        //require(amount > 0, "tipsy: transfer amount must be greater than zero"); Probably don't need to worry about this
+        //If sender or recipient are immune from fee, don't use maxTxAmount
+        //Usage of excludedFromFee means regular user to PCS enforces maxTxAmount
+        if(!excludedFromFee[sender] && !excludedFromFee[recipient])
+        {
+            require(amount <= maxTxAmount, "tipsy: transfer amount exceeds maxTxAmount.");
+        }
         uint256 realAmount = _reflexToReal(amount);
 
         uint256 senderBalance = _balances[sender];
@@ -623,7 +642,10 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
         _balances[recipient] += realAmount;
 
     }
-    //Mittens note, this is just to avoid some duplicated transfers that might look weird on BSCScan
+    /* @dev
+     * This is just to avoid some duplicated transfers that might look weird on BSCScan during taxed sells
+     * i.e. during tax an event when Tipsy is transfered to (this) address, and then a second event from this address to PCS for the sell
+     */
     function transferNoEvent(
         address sender,
         address recipient,
@@ -632,7 +654,9 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
         _transfer(sender, recipient, amount);
 
     }
-
+    /* @dev emits the Transfer event log
+     *
+     */
     function _afterTokenTransfer(address sender, address recipient, uint amount) public
     {
     emit Transfer(sender, recipient, amount);
@@ -641,7 +665,7 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
     /** @dev Creates `amount` tokens and assigns them to `account`, increasing
      * the total supply.
      *
-     * Dev note, _mint is only called during genesis, so there's no need
+     * _mint is only called during genesis, so there's no need
      * to adjust real tokens into reflex space, as they are 1:1 at this time
      * Emits a {Transfer} event with `from` set to the zero address.
      *
@@ -654,7 +678,6 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
 
         _totalSupply += amount;
         _balances[account] += amount;
-        //emit Transfer(address(0), account, amount);
         _afterTokenTransfer(address(0), account, amount);
     }
 
@@ -663,7 +686,7 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
      * total supply.
      *
      * Emits a {Burn} event with old supply, amount burned and new supply.
-     * All in r space
+     * Amounts in reflex space
      * Requirements:
      *
      * - `account` cannot be the zero address.
@@ -680,31 +703,33 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
         require(accountBalance >= _realAmount, "ERC20: burn amount exceeds balance");
         unchecked {
             _balances[account] = accountBalance - _realAmount;
+            _balances[DEAD_ADDRESS] = _balances[DEAD_ADDRESS] + _realAmount;
         }
         _totalSupply -= _realAmount;
         emit Transfer(account, DEAD_ADDRESS, amount);
         emit Burned(totalSupply() + amount, amount, totalSupply());
-
     }
 
-    function Reflect(uint amount) public
-    {
-        _reflect(msg.sender, amount*1e9*1e18);
-    }
-
-    function Burn(uint amount) public{
-        _burn(msg.sender, amount*1e9*1e18);
-    }
-
+    /**
+     * @dev Destroys `amount` tokens from `account`, but adjusts rTotal
+     * so total supply is not reduced.
+     *
+     * Emits a {Reflect} event with old rTotal, amount reflected and new rTotal.
+     * Amounts in reflex space
+     * Requirements:
+     *
+     * - `account` cannot be the zero address.
+     * - `account` must have at least `amount` tokens.
+     */
     //Reflect removes 'amount' of the total supply, but reflect rewards by adjusting _rTotal so that _rTotalSupply() remains constant
     //Emits a reflex event that has the old _rTotal, the amount reflected, and the new _rTotal
     function _reflect(address account, uint256 amount) internal {
-
+        
         require(account != address(0), "tipsy: reflect from the zero address");
         require(amount > 0, "tipsy: reflect amount must be greater than zero");
-
+        //accountBalance is in real space
         uint256 accountBalance = _balances[account];
-        //Before continuing, convert amount into realspace
+        //Before continuing, convert amount into real space
         uint256 _realAmount = _reflexToReal(amount);
         require(accountBalance >= _realAmount, "tipsy: reflect amount exceeds balance");
         unchecked {
@@ -713,16 +738,11 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
         uint oldRFactor = _rTotal;
         _setNewRate(amount);
         _totalSupply -= _realAmount;
-
         emit Reflex(oldRFactor, amount, _rTotal);
     }
 
-
     /**
      * @dev Sets `amount` as the allowance of `spender` over the `owner` s tokens.
-     *
-     * This internal function is equivalent to `approve`, and can be used to
-     * e.g. set automatic allowances for certain subsystems, etc.
      *
      * Emits an {Approval} event.
      *
@@ -738,7 +758,6 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
     ) internal virtual {
         require(owner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
-
         _allowances[owner][spender] = _reflexToReal(amount);
         emit Approval(owner, spender, amount);
     }
