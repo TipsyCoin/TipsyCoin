@@ -22,7 +22,7 @@ contract Distribution is Ownable, Initializable, ReentrancyGuard {
     mapping(address => uint256) internal _shares;
     mapping(address => uint256) internal _tokenReleased;
 
-    function initialize(address[] memory payees, uint256[] memory shares_, IERC20Upgradeable _paymentToken) public initializer {
+    function initialize(address[] memory payees, uint256[] memory shares_, IERC20Upgradeable _paymentToken) external initializer {
         require(
             payees.length == shares_.length,
             "TokenPaymentSplitter: payees and shares length mismatch"
@@ -34,15 +34,15 @@ contract Distribution is Ownable, Initializable, ReentrancyGuard {
         paymentToken = _paymentToken;
     }
 
-    function totalShares() public view returns (uint256) {
+    function totalShares() external view returns (uint256) {
         return _totalShares;
     }
 
-    function shares(address account) public view returns (uint256) {
+    function shares(address account) external view returns (uint256) {
         return _shares[account];
     }
 
-    function payee(uint256 index) public view returns (address) {
+    function payee(uint256 index) external view returns (address) {
         return _payees[index];
     }
 
@@ -67,7 +67,7 @@ contract Distribution is Ownable, Initializable, ReentrancyGuard {
         emit PaymentReleased(account, payment);
     }
 
-    function release_all() public {
+    function release_all() external {
         uint256 tokensNow = IERC20Upgradeable(paymentToken).balanceOf(
             address(this)
         );
@@ -93,11 +93,11 @@ contract Distribution is Ownable, Initializable, ReentrancyGuard {
         emit PayeeAdded(account, shares_);
     }
 
-    function addNewPayee(address account, uint256 shares_) public onlyOwner {
+    function addNewPayee(address account, uint256 shares_) external onlyOwner {
         _addPayee(account, shares_);
     }
 
-    function adjustWeight(address account, uint256 shares_) public onlyOwner {
+    function adjustWeight(address account, uint256 shares_) external onlyOwner {
         require(
             account != address(0),
             "TokenPaymentSplitter: account is the zero address"

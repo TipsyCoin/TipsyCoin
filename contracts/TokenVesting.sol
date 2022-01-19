@@ -43,7 +43,7 @@ contract TokenVesting is Ownable, Initializable, ReentrancyGuard {
      * @param duration_ duration in seconds of the period in which the tokens will vest
      * @param revocable_ whether the vesting is revocable or not
      */
-    function initialize(address beneficiary_, uint256 start_, uint256 duration_, bool revocable_) public initializer {
+    function initialize(address beneficiary_, uint256 start_, uint256 duration_, bool revocable_) external initializer {
         require(beneficiary_ != address(0), "TokenVesting: beneficiary is the zero address");
         // solhint-disable-next-line max-line-length
         require(duration_ > 0, "TokenVesting: duration is 0");
@@ -59,42 +59,42 @@ contract TokenVesting is Ownable, Initializable, ReentrancyGuard {
     /**
      * @return the beneficiary of the tokens.
      */
-    function beneficiary() public view returns (address) {
+    function beneficiary() external view returns (address) {
         return _beneficiary;
     }
 
     /**
      * @return the start time of the token vesting.
      */
-    function start() public view returns (uint256) {
+    function start() external view returns (uint256) {
         return _start;
     }
 
     /**
      * @return the duration of the token vesting.
      */
-    function duration() public view returns (uint256) {
+    function duration() external view returns (uint256) {
         return _duration;
     }
 
     /**
      * @return true if the vesting is revocable.
      */
-    function revocable() public view returns (bool) {
+    function revocable() external view returns (bool) {
         return _revocable;
     }
 
     /**
      * @return the amount of the token released.
      */
-    function released(address token) public view returns (uint256) {
+    function released(address token) external view returns (uint256) {
         return _released[token];
     }
 
     /**
      * @return true if the token is revoked.
      */
-    function revoked(address token) public view returns (bool) {
+    function revoked(address token) external view returns (bool) {
         return (_revoked[token] != 0);
     }
 
@@ -102,7 +102,7 @@ contract TokenVesting is Ownable, Initializable, ReentrancyGuard {
      * @notice Transfers vested tokens to beneficiary.
      * @param token ERC20 token which is being vested
      */
-    function release(IERC20Upgradeable  token) public nonReentrant {
+    function release(IERC20Upgradeable  token) external nonReentrant {
         uint256 unreleased = _releasableAmount(token);
         require(unreleased > 0, "TokenVesting: no tokens are due");
 
@@ -118,7 +118,7 @@ contract TokenVesting is Ownable, Initializable, ReentrancyGuard {
      * remain in the contract, the rest are returned to the owner.
      * @param token ERC20 token which is being vested
      */
-    function revoke(IERC20Upgradeable token) public onlyOwner {
+    function revoke(IERC20Upgradeable token) external onlyOwner {
         require(_revocable, "TokenVesting: cannot revoke");
         require(_revoked[address(token)] == 0, "TokenVesting: token already revoked");
 
@@ -139,7 +139,7 @@ contract TokenVesting is Ownable, Initializable, ReentrancyGuard {
     /**
      * @return the vested amount of the token vesting.
      */
-    function vested(IERC20Upgradeable token) public view returns (uint256) {
+    function vested(IERC20Upgradeable token) external view returns (uint256) {
         return _vestedAmount(token);
     }
 
@@ -147,7 +147,7 @@ contract TokenVesting is Ownable, Initializable, ReentrancyGuard {
      * @dev Calculates the amount that has already vested but hasn't been released yet.
      * @param token ERC20 token which is being vested
      */
-    function _releasableAmount(IERC20Upgradeable token) public view returns (uint256) {
+    function _releasableAmount(IERC20Upgradeable token) internal view returns (uint256) {
         return _vestedAmount(token) - (_released[address(token)]);
     }
 
@@ -155,14 +155,14 @@ contract TokenVesting is Ownable, Initializable, ReentrancyGuard {
      * @dev Calculates the amount that has already vested.
      * @param token ERC20 token which is being vested
      */
-    function _vestedAmount(IERC20Upgradeable token) public view returns (uint256) {
+    function _vestedAmount(IERC20Upgradeable token) internal view returns (uint256) {
         uint256 currentBalance = token.balanceOf(address(this));
         uint256 totalBalance = currentBalance + (_released[address(token)]) + (_refunded[address(token)]);
 
         if (block.timestamp >= _start + (_duration) && _revoked[address(token)] == 0) {
             return totalBalance;
         } else if (_revoked[address(token)] > 0) {
-            return totalBalance * ((_revoked[address(token)] - (_start))/(_duration));
+            return (totalBalance * (_revoked[address(token)] - (_start)))/(_duration);
         } else {
             return (totalBalance * (block.timestamp - _start))/(_duration);
         }
