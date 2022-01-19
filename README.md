@@ -74,5 +74,7 @@ Because Tipsy uses a network of contracts, the order in which they are deployed 
 
 ## BSC Mainnet Contract Addresses
 GnosisSafe #1 -> (still yet to fully setup, will be 2 of 3) -> bnb:0x884C908ea193B0Bb39f6A03D8f61C938F862e153
+
 GnosisSafe #2 -> (still yet to full setup, will be 3 of 5) -> bnb:0xb4620C524245c584C5C2Ba79FD20CeB926FBd418
+
 (todo)
