@@ -159,7 +159,7 @@ contract TokenVesting is Ownable, Initializable, ReentrancyGuard {
         uint256 currentBalance = token.balanceOf(address(this));
         uint256 totalBalance = currentBalance + (_released[address(token)]) + (_refunded[address(token)]);
 
-        if (block.timestamp >= _start + (_duration) && _revoked[address(token)] == 0) {
+        if (block.timestamp >= _start + (_duration) && _revoked[address(token)] <1e19) { //covers tipsy dust
             return totalBalance;
         } else if (_revoked[address(token)] > 0) {
             return (totalBalance * (_revoked[address(token)] - (_start)))/(_duration);
