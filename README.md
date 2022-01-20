@@ -67,7 +67,14 @@ Because Tipsy uses a network of contracts, the order in which they are deployed 
 8. Proxy Call BuyBack with Initialize(address TipsyCoin, address TokenLocker)
 
 ## Hardhat Guide
-(todo)
+
+
+Follow : https://hardhat.org/getting-started/ if not already set up with Hardhat
+
+`npm install`
+`npx hardhat test`
+
+After this you should be able to see all the passing tests for TokenVesting, Timelock, and Distribution.
 
 ## BSC Testnet Contract Addresses
 (todo)
