@@ -55,16 +55,14 @@ contract Distribution is Ownable, Initializable, ReentrancyGuard {
         uint256 payment = (tokens * _shares[account]) /
             _totalShares;
 
-        require(
-            payment != 0,
-            "TokenPaymentSplitter: account is not due payment"
-        );
-
+        if (payment != 0) {
         _tokenReleased[account] = _tokenReleased[account] + payment;
         _totalTokenReleased = _totalTokenReleased + payment;
 
         IERC20Upgradeable(paymentToken).safeTransfer(account, payment);
         emit PaymentReleased(account, payment);
+    }
+    
     }
 
     function release_all() external {
