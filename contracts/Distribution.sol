@@ -77,7 +77,7 @@ contract Distribution is Ownable, Initializable, ReentrancyGuard {
         }
     }
 
-    function _addPayee(address account, uint256 shares_) internal onlyOwner {
+    function _addPayee(address account, uint256 shares_) internal {
         require(
             account != address(0),
             "TokenPaymentSplitter: account is the zero address"
