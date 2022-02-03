@@ -46,7 +46,7 @@ contract Distribution is Ownable, Initializable, ReentrancyGuard {
         return _payees[index];
     }
 
-    function _release(uint256 tokens, address account) internal nonReentrant {
+    function _release(uint256 tokens, address account) internal {
         require(
             _shares[account] > 0,
             "TokenPaymentSplitter: account has no shares"
