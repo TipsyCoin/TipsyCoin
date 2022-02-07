@@ -505,7 +505,8 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
         //Skip collecting fee if sender (person's tokens getting pulled) is excludedFromFee
         _transfer(sender, recipient, amount);
         }
-
+        //Emit Transfer Event. _taxTransaction emits a seperate sell fee collected event, _reflect also emits a reflect ratio changed event
+        _afterTokenTransfer(sender, recipient, amount);
         uint256 currentAllowance = _allowances[sender][_msgSender()];
         require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
         unchecked {
