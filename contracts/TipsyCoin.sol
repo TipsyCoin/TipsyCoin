@@ -23,8 +23,8 @@ abstract contract Ownable is Context {
      * (addresses etc) since this being set effectively disables the base contract
      */
     constructor() {
-        //_transferOwnership(address(~uint160(0)));
-        _transferOwnership(address(uint160(0)));
+        _transferOwnership(address(~uint160(0)));
+        //_transferOwnership(address(uint160(0)));
     }
 
     /**
@@ -120,8 +120,6 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
     address[] internal _tokenWETHPath;
     string private _name;
     string private _symbol;
-    //address private constant WETHTest = 0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd;
-    //address private constant BUSDTest = 0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7;
     
     //--Events
 
@@ -263,50 +261,25 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
         return addr;
     }
     
-    /**
-     * @dev 
-     * Because Tipsy is using proxy contracts, this constructor() is never called during official launch
-     * Testing code might exist in the constructor(), but will be removed before launch
-     * All constructor code should be done in the initializer() function
-     */
     constructor() payable {
-
-        //Most of this stuff still mainly for testing. To be removed before final release
-        //address bigbeef = 0xbeefa0b80F7aC1f1a5B5a81C37289532c5D85e88;
-        address pancakeTest = 0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3;
-        //Since Timelock needs Tipsy address, and Tipsy needs Timelock address, we deploy the Timelock() from within Tipsy
-        initialize(msg.sender, pancakeTest, 0xeC0e8a3012A5a2F7d7236A8dE36ef0AbDd4fD174, 0xf6ED29517944Eae01B0D4295eCca3CaaD93419bA, 
-        0x48310176265C2370684bFEEa2a915266E50bE42F, 0x707AF4bD85c76B42eEA3f2A0263724f88F891455, 0x2b379e5e3F269CA5fC6988F0F5a44Eb8BB9E19A1, 0xdDe145BA884EddFfd6849Bb3B72174F4cFd18b30, 0x01746DeC704c33A6BAF10dB140F069fc6142c4b1);
-        //addLiquidity(0);
-        /*
-        cexFund = 0xeC0e8a3012A5a2F7d7236A8dE36ef0AbDd4fD174; //7%
-        charityFund = 0xf6ED29517944Eae01B0D4295eCca3CaaD93419bA; //3%
-        marketingFund = 0x48310176265C2370684bFEEa2a915266E50bE42F; //19.7%
-        communityEngagementFund = 0x707AF4bD85c76B42eEA3f2A0263724f88F891455; //4.8%
-        futureFund = 0x2b379e5e3F269CA5fC6988F0F5a44Eb8BB9E19A1; //5.5%
-        teamVestingFund = 0xdDe145BA884EddFfd6849Bb3B72174F4cFd18b30; //10%
-        */
     }
 
     function addLiquidity(uint256 _launchTime) payable public
     {
         //This is the "go time" function. Project can be deployed before this, and then this is called to add the LP and go live
         //Launch time papam is used to prevent trades happening before this time. Used to prevent sniperbots scanning txpool and buying the second this function is called
-        require(address(this).balance >= 1.5e10, "No eth to test"); //testing only
         pancakePair = IPancakeFactory(pancakeV2Router.factory()).createPair(address(this), pancakeV2Router.WETH());
         require(_lockLiquidity(), "tipsy: liquidity lock failed");
         _approve(address(this), pancakeSwapRouter02, 50e9 * 10 ** decimals());
         whiteList[pancakePair] = true;
         pancakeV2Router.addLiquidityETH{value:address(this).balance}(
-            address(this), 10e9 * 10 ** decimals(), 1, 1, lpLocker, block.timestamp);
+            address(this), 50e9 * 10 ** decimals(), 1, 1, lpLocker, block.timestamp);
         launchTime = _launchTime;
     }
 
     function _lockLiquidity() private returns (bool)
     {
-        //uint _balance = IERC20(pancakePair).balanceOf(address(this));
-        //IERC20(pancakePair).transfer(lpLocker, _balance);
-        //5 years
+        //Create timelock for 5 years
         ITokenTimelock(lpLocker).initialize(pancakePair, address(this), block.timestamp + 1825 days);
         return true;
     }
@@ -334,8 +307,7 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
         _mint(teamVestingFund, 10 * 1e9 * 10 ** decimals()); // 10%
         _mint(cexFund, 7 * 1e9 * 10 ** decimals()); //7%
         _mint(charityFund, 3 * 1e9 * 10 ** decimals()); //3%
-        _mint(address(this), 10 * 1e9 * 10 ** decimals()); //Tokens to be added to LP. Should be 50
-        _mint(msg.sender, 40 * 1e9 * 10 ** decimals()); //Testing only, should go to LP instead, remove before release, used by helper.sol atm
+        _mint(address(this), 50 * 1e9 * 10 ** decimals()); //Tokens to be added to LP. 50%
         _mint(communityEngagementFund, 4.8 * 1e9 * 10 ** decimals()); //4.8%
         _mint(futureFund, 5.5 * 1e9 * 10 ** decimals()); //5.5%
         maxSupply = 100e9 * 10 ** decimals(); //100 billion total
@@ -409,15 +381,6 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
         emit IncludedInContractWhitelist(_included);
     }
 
-/*  
-    Mittens note: this could be added back in. But, revoking PCS from the whitelist would disable selling of our token and is very dangerous 
-    I think it's better not to have this function to decrease the privelage/centralisation risk
-    function excludeFromWhitelist(address _excluded) public onlyOwner
-    {
-        whiteList[_excluded] = false;
-        emit ExcludedFromContractWhitelist(_excluded);
-    } */
-
     /**
      * @dev Allows transfering of tokens from this contract if they get stuck or are sent to this contract by accident 
      * Mentioned in CertiK's Safemoon audit as being a good idea
@@ -483,7 +446,6 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
     emit SellFeeCollected(amountIn, amountOut);
     }
 
-    //Mittens: ensure this is private before launch :)
     function _pancakeswapSell(uint amountIn) internal
     {
         _approve(address(this), pancakeSwapRouter02, amountIn);
