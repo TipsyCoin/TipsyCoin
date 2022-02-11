@@ -108,19 +108,19 @@ event BuybackWeightsAdjusted(uint indexed newBurn, uint indexed newReflect, uint
         initialize(msg.sender, pancakeTest, tipsyCoin, lpLocker, 0, 0, 1000);
     }
 
-    function BuyBack(uint _amount, uint _percentMinOutput) external onlyOwner returns (bool)
+    function BuyBack(uint _amount) external onlyOwner returns (bool)
     {
         require(IERC20(pancakeV2Router.WETH()).balanceOf(address(this)) >= _amount, "tipsy: proposed amount > WBNB balance");
         uint _reflectAmount = _amount * reflectAmount / totalBuyBackWeight;
         uint _burnAmount = _amount * burnAmount / totalBuyBackWeight;
         uint _liquidityAmount = _amount * liquidityAmount / totalBuyBackWeight;
-        if (_burnAmount > 0) require(burn(_burnAmount, _percentMinOutput), "tipsy: burn failed");
-        if (_reflectAmount > 0) require(reflect(_reflectAmount, _percentMinOutput), "tipsy: reflect failed");
-        if (_liquidityAmount > 0) require(addLiquidity(_liquidityAmount, _percentMinOutput), "tipsy: add liquidity failed");
+        if (_burnAmount > 0) require(burn(_burnAmount), "tipsy: burn failed");
+        if (_reflectAmount > 0) require(reflect(_reflectAmount), "tipsy: reflect failed");
+        if (_liquidityAmount > 0) require(addLiquidity(_liquidityAmount), "tipsy: add liquidity failed");
         return true;
     }
 
-    function burn(uint _amount, uint _percentMinOutput) internal returns (bool)
+    function burn(uint _amount) internal returns (bool)
     {   
         require(_amount >= 1e9, "tipsy: don't burn with < 1 gwei of BNB");
         IERC20 token = IERC20(tipsy);
@@ -128,27 +128,25 @@ event BuybackWeightsAdjusted(uint indexed newBurn, uint indexed newReflect, uint
         _WETHTokenPath[0] = pancakeV2Router.WETH();
         _WETHTokenPath[1] = tipsy;
         IERC20(_WETHTokenPath[0]).safeApprove(pancakeSwapRouter02, _amount);
-        uint _outAmount = pancakeV2Router.getAmountsOut(_amount, _WETHTokenPath)[1] * _percentMinOutput / 100;
-        uint _soldtipsy = pancakeV2Router.swapExactTokensForTokens(_amount, _outAmount, _WETHTokenPath, address(this), block.timestamp)[1];
+        uint _soldtipsy = pancakeV2Router.swapExactTokensForTokens(_amount, 1, _WETHTokenPath, address(this), block.timestamp)[1];
         token.safeTransfer(DEAD_ADDRESS, _soldtipsy);
         return true;
     }
 
-    function reflect(uint _amount, uint _percentMinOutput) internal returns (bool)
+    function reflect(uint _amount) internal returns (bool)
     {
         require(_amount >= 1e9, "tipsy: don't reflect with < 1 gwei of BNB");
         IERC20 token = IERC20(tipsy);
         address[] memory _WETHTokenPath = new address[](2);
         _WETHTokenPath[0] = WETH;
         _WETHTokenPath[1] = tipsy;
-        uint _outAmount = pancakeV2Router.getAmountsOut(_amount, _WETHTokenPath)[1] * _percentMinOutput / 100;
         IERC20(_WETHTokenPath[0]).safeApprove(pancakeSwapRouter02, _amount);
-        uint _soldtipsy = pancakeV2Router.swapExactTokensForTokens(_amount, _outAmount, _WETHTokenPath, address(this), block.timestamp)[1];
+        uint _soldtipsy = pancakeV2Router.swapExactTokensForTokens(_amount, 1, _WETHTokenPath, address(this), block.timestamp)[1];
         token.safeTransfer(address(0), _soldtipsy);
         return true;
     }
 
-    function addLiquidity(uint _amount, uint _percentMinOutput) internal returns (bool)
+    function addLiquidity(uint _amount) internal returns (bool)
     {
         require(_amount >= 2e9, "tipsy: don't add liquidity with < 2 gwei of BNB");
         uint _halfAmount = _amount/2;
@@ -156,8 +154,7 @@ event BuybackWeightsAdjusted(uint indexed newBurn, uint indexed newReflect, uint
         _WETHTokenPath[0] = WETH;
         _WETHTokenPath[1] = tipsy;
         IERC20(_WETHTokenPath[0]).safeApprove(pancakeSwapRouter02, _amount);
-        uint _outAmount = pancakeV2Router.getAmountsOut(_amount, _WETHTokenPath)[1] * _percentMinOutput / 100;
-        uint _soldtipsy = pancakeV2Router.swapExactTokensForTokens(_halfAmount, _outAmount, _WETHTokenPath, address(this), block.timestamp)[1];
+        uint _soldtipsy = pancakeV2Router.swapExactTokensForTokens(_halfAmount, 1, _WETHTokenPath, address(this), block.timestamp)[1];
         (,,uint _lpAdded) = pancakeV2Router.addLiquidity(_WETHTokenPath[0], _WETHTokenPath[1], _halfAmount, _soldtipsy, 1, 1, lpTimelock, block.timestamp);
         require (_lpAdded > 0, "tipsy: no LP tokens minted");
         return true;
