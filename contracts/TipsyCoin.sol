@@ -483,9 +483,9 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
     ) public noBots(recipient) returns (bool) {
         if (!excludedFromFee[sender])
         {   
-            uint _amountBuyBack = amount * buybackFundAmount / _feeTotal;
-            uint _amountMarketing = amount * marketingCommunityAmount / _feeTotal;
-            uint _amountReflexive = amount * reflexiveAmount / _feeTotal;
+            uint _amountBuyBack = amount * buybackFundAmount / _feeTotal/10;
+            uint _amountMarketing = amount * marketingCommunityAmount / _feeTotal/10;
+            uint _amountReflexive = amount * reflexiveAmount / _feeTotal/10;
 
         if(_amountBuyBack + _amountMarketing > 0) 
         { 
