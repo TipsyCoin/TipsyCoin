@@ -508,9 +508,9 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
         //Emit Transfer Event. _taxTransaction emits a seperate sell fee collected event, _reflect also emits a reflect ratio changed event
         _afterTokenTransfer(sender, recipient, amount);
         uint256 currentAllowance = _allowances[sender][_msgSender()];
-        require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
+        require(_realToReflex(currentAllowance) >= amount, "ERC20: transfer amount exceeds allowance");
         unchecked {
-            _approve(sender, _msgSender(), currentAllowance - amount);
+            _approve(sender, _msgSender(), _realToReflex(currentAllowance) - amount);
         }
 
         return true;
@@ -527,7 +527,7 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
      * - `spender` cannot be the zero address.
      */
     function increaseAllowance(address spender, uint256 addedValue) public returns (bool) {
-        _approve(_msgSender(), spender, _allowances[_msgSender()][spender] + addedValue);
+        _approve(_msgSender(), spender, _realToReflex(_allowances[_msgSender()][spender]) + addedValue);
         return true;
     }
 
@@ -547,9 +547,9 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
      */
     function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
         uint256 currentAllowance = _allowances[_msgSender()][spender];
-        require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
+        require(_realToReflex(currentAllowance) >= subtractedValue, "ERC20: decreased allowance below zero");
         unchecked {
-            _approve(_msgSender(), spender, currentAllowance - subtractedValue);
+            _approve(_msgSender(), spender, _realToReflex(currentAllowance) - subtractedValue);
         }
         return true;
     }
