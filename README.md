@@ -2,12 +2,10 @@
 
 Solidity contracts and Hardhat tests for TipsyCoin.io.
 
-~~Currently, the team is still hard at work testing the contracts before the audit scheduled for the 20th. So some debug and testing code is still present, and small changes to the contracts are likely. Please make sure to grab the latest code on the 20th, and ensure this message has been removed, which indicates a green light. Thanks!~~ Should hopefully be good to go
-
 ## Introduction
 TipsyCoin is a Safemoon style token with a number of design changes
 
-- First, the token genesis event distributes tokens to a network of auxiliary contracts in order to remove centralisation / privileged account concerns. These contracts either have restrictions on how funds can be used, use multi-sigs for access, or both
+- First, the token genesis event distributes tokens to a network of auxiliary contracts in order to reduce centralisation / privileged account concerns. These contracts either have restrictions on how funds can be used, use multi-sigs for access, or both. In addition, following suggestions from CertiK, a timelock delay of 48 has also been utilised to further mitigate centralisation / privileged account concerns  
 
 - Second, the tax system has been redesigned to only tax sells of TipsyCoin. This is designed to reduce the amount of friction and failed transactions users experience when buying and doing simple transfers
 
@@ -55,8 +53,12 @@ This contract recieves WBNB from the sell tax as described in TipsyCoin allocate
 ### TokenHolder.sol
 A very basic contract with a description that can hold and transfer TipsyCoin. Used for segregating the various balances of TipsyCoin, e.g. the 3% Charity fund, and to provide transparency to users. The owner of this will be set to the 2 of 3 GnosisSafe multi-sig to prevent these funds from being misused by a single privelaged account.
 
+### TimelockController.sol
+A governance timelock contract from OpenZepplin. This is used to reduce centralisation concerns noted by CertiK in their audit of TipsyCoin. In order to do this, all contracts with centralisation concerns will have their Owner() set to the governance timelock contract, which will enforce a 48 hour delay in execution. Two TimelockControllers will be used for the deployment (one for ProxyAdmin, one for Owner), both with a 48 hour delay. The Proposers for these TimelockController's will be The 3/5 Gnosis Multisig for ProxyAdmin, and the 2/3 Gnosis Multisig for the Owner. The Executors for these TimelockControllers will be the members of those respective Multisigs, plus the TipsyCoin Deployment wallet. Deployment diagram which includes the TimelockController can be found below
+
 ## Deploy order
 Because Tipsy uses a network of contracts, the order in which they are deployed is important. This is the recommended order for deployment:
+0. Deploy 2x copies of TimelockController.sol with a minimum delay of 48 hours, and set the proposers to the GnosisSafe multisig wallets (2/3 for Owner(), and 3/5 for ProxyAdmin(). Set the executors to the same set plus the Deployment wallet and note the TimelockController addresses. 
 1. Deploy a copy of all base contracts: TokenHolder, TokenVesting, TokenDistribution, TipsyCoin, BuyBack
 2. Proxy deploy TokenHolder x5 with Initialize(Description). TokenHolders are for the cexFund, charityFund, marketingFund, communityEngagementFund, futureFund
 3. Proxy deploy TipsyCoin but don't init
@@ -65,6 +67,10 @@ Because Tipsy uses a network of contracts, the order in which they are deployed 
 6. Proxy deploy BuyBack, but don't init
 7. Proxy Call TipsyCoin Initialize(cexFund, charityFund, marketingFund, communityEngagementFund, futureFund, TokenVesting) function from the proxy. Also creates TimeLock address
 8. Proxy Call BuyBack with Initialize(address TipsyCoin, address TokenLocker)
+9. Finally, once all contracts have been deployed and configured, set their owners to the TimelockController addresses noted above
+
+The final deployment should look like this:
+![TipsyDiag3](https://user-images.githubusercontent.com/97759975/153759674-8a918335-2706-44db-bd3d-4e4fdbdd7c69.png)
 
 ## Hardhat Guide
 
