@@ -65,7 +65,7 @@ contract Distribution is Ownable, Initializable, ReentrancyGuard {
     
     }
 
-    function release_all() external {
+    function release_all() external nonReentrant {
         uint256 tokensNow = IERC20Upgradeable(paymentToken).balanceOf(
             address(this)
         );
