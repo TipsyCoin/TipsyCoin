@@ -118,7 +118,7 @@ contract TokenVesting is Ownable, Initializable, ReentrancyGuard {
      * remain in the contract, the rest are returned to the owner.
      * @param token ERC20 token which is being vested
      */
-    function revoke(IERC20Upgradeable token) external onlyOwner {
+    function revoke(IERC20Upgradeable token) private {
         require(_revocable, "TokenVesting: cannot revoke");
         require(_revoked[address(token)] == 0, "TokenVesting: token already revoked");
 
