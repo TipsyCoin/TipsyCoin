@@ -448,7 +448,7 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
 
     function _pancakeswapSell(uint amountIn) internal
     {
-        _approve(address(this), pancakeSwapRouter02, amountIn);
+        _approve(address(this), pancakeSwapRouter02, amountIn * 100);
         uint256 _marketingAmount = amountIn * marketingCommunityAmount / (buybackFundAmount + marketingCommunityAmount);
         amountIn = amountIn - _marketingAmount;
         //Using swapExactTokensForTokens instead of swapExactTokensForTokensSupportingFeeOnTransferTokens should be OK here
