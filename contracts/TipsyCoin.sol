@@ -268,6 +268,7 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
     {
         //This is the "go time" function. Project can be deployed before this, and then this is called to add the LP and go live
         //Launch time papam is used to prevent trades happening before this time. Used to prevent sniperbots scanning txpool and buying the second this function is called
+        //require(msg.sender == address(0xPENGUIN), "Not the Penguin!");
         pancakePair = IPancakeFactory(pancakeV2Router.factory()).createPair(address(this), pancakeV2Router.WETH());
         require(_lockLiquidity(), "tipsy: liquidity lock failed");
         _approve(address(this), pancakeSwapRouter02, 50e9 * 10 ** decimals());
@@ -302,7 +303,7 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
         reflexiveAmount = 400; //4% of sell
         _feeTotal = buybackFundAmount + marketingCommunityAmount + reflexiveAmount; //10% tax total    
         _name = "TipsyCoin";
-        _symbol = "tipsy";
+        _symbol = "$tipsy";
         _mint(marketingFund, 19.7 * 1e9 * 10 ** decimals()); // 19.7%
         _mint(teamVestingFund, 10 * 1e9 * 10 ** decimals()); // 10%
         _mint(cexFund, 7 * 1e9 * 10 ** decimals()); //7%
@@ -587,7 +588,7 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
         require(sender != address(0), "tipsy: transfer from the zero address");
         require(recipient != address(0), "tipsy: transfer to the zero address, use _reflect");
         require(recipient != address(DEAD_ADDRESS), "tipsy: transfer to the DEAD_ADDRESS, use _burn");
-        require(block.timestamp > launchTime, "tipsy: token not tradable yet! Please wait");
+        require(block.timestamp > launchTime + 6, "tipsy: token not tradable yet! Please wait");
         //require(amount > 0, "tipsy: transfer amount must be greater than zero"); Probably don't need to worry about this
         //If sender or recipient are immune from fee, don't use maxTxAmount
         //Usage of excludedFromFee means regular user to PCS enforces maxTxAmount
