@@ -72,7 +72,7 @@ abstract contract Ownable is Context {
         emit OwnershipTransferred(oldOwner, newOwner);
     }
 
-    function initOwnership(address newOwner) public virtual {
+    function initOwnership(address newOwner) internal virtual {
         require(_owner == address(0), "Ownable: owner already set");
         _owner = newOwner;
         emit OwnershipTransferred(address(0), newOwner);
