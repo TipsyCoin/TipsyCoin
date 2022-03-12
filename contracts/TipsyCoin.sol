@@ -621,7 +621,7 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
     /* @dev emits the Transfer event log
      *
      */
-    function _afterTokenTransfer(address sender, address recipient, uint amount) public
+    function _afterTokenTransfer(address sender, address recipient, uint amount) internal
     {
     emit Transfer(sender, recipient, amount);
     }
