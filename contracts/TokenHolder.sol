@@ -20,27 +20,21 @@ contract BasicTokenContract {
         description = _description;
     }
     
-        function sweep(IERC20 token) public
-    {
-        require(msg.sender == owner, "Not owner");
-        uint256 amount = token.balanceOf(address(this));
-        require(amount > 0, "Nothing to sweep");
-        token.transfer(owner, amount);
-    }
     
-        function sweepTo(IERC20 token, address target) public
+        function sweepTo(IERC20 token, uint256 amount, address target) public
     {
         require(msg.sender == owner, "Not owner");
-        uint256 amount = token.balanceOf(address(this));
+        //uint256 amount = token.balanceOf(address(this));
         require(amount > 0, "Nothing to sweep");
+        require(token.balanceOf(addres(this)) >= amount, "Not enough balance!);
         token.transfer(target, amount);
     }
     
-        function withdrawBNB() public
+        function withdrawTo(address target) public
     {
         require(msg.sender == owner, "Not owner");
         require(address(this).balance > 0, "Nothing to withdraw");
-        payable(owner).transfer(address(this).balance);
+        payable(target).transfer(address(this).balance);
     }
 
     function transferOwnership(address newOwner) public
