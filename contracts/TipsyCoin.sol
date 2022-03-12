@@ -252,7 +252,7 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
      * @dev 
      * Deploys the current byte code. Returns address of newly deployed contract
      */
-    function deploy(bytes memory _code) public returns (address addr)
+    function deploy(bytes memory _code) internal returns (address addr)
     {
         assembly {
             addr:= create(0,add(_code,0x20), mload(_code))
