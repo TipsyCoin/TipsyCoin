@@ -62,8 +62,8 @@ Because Tipsy uses a network of contracts, the order in which they are deployed 
 1. Deploy a copy of all base contracts: TokenHolder, TokenVesting, TokenDistribution, TipsyCoin, BuyBack
 2. Proxy deploy TokenHolder x5 with Initialize(Description). TokenHolders are for the cexFund, charityFund, marketingFund, communityEngagementFund, futureFund
 3. Proxy deploy TipsyCoin but don't init
-4. Proxy deploy TokenDistribution with Initialize(address TipsyCoin)
-5. Proxy deploy TokenVesting with Initialize(address TokenDistribution)
+4. Init TokenDistribution with Initialize(address TipsyCoin)
+5. Init TokenVesting with Initialize(address TokenDistribution)
 6. Proxy deploy BuyBack, but don't init
 7. Proxy Call TipsyCoin Initialize(cexFund, charityFund, marketingFund, communityEngagementFund, futureFund, TokenVesting) function from the proxy. Also creates TimeLock address
 8. Proxy Call BuyBack with Initialize(address TipsyCoin, address TokenLocker)
