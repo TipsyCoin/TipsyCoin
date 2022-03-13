@@ -83,11 +83,61 @@ Follow : https://hardhat.org/getting-started/ if not already set up with Hardhat
 After this you should be able to see all the passing tests for TokenVesting, Timelock, and Distribution.
 
 ## BSC Testnet Contract Addresses
-(todo)
+Addresses (Most useful)
+Testnet Deployment Wallet: https://testnet.bscscan.com/address/0xbeefa0b80f7ac1f1a5b5a81c37289532c5d85e88
+Testnet TipsyCoin: https://testnet.bscscan.com/token/0xb1c11a8ec2c70a085957891688af8ed980e1a964
+
+Addresses (Base Contract):
+TokenHolder: 0x3557593c7644E91Fb858e5BefEcB6F5e5473B869
+TokenVesting: 0x296E3eAE3Ba53FF0e33Cf6278bAf56f6e96b4096
+TokenDistribution: 0xabE9f32F2C6E4a2894F7F4e713eA9Ef1Cd84c0AF
+BuyBack: 0xAd1C1A04bB050530c2511d4113b81eD7396E3Fb3
+TipsyCoin: 0xD25aFdFB0f6d9336Efc64074045F46B7870b9290
+
+Addresses (Proxy Contract):
+ProxyCexFund: 0xFDD7d86937F3435A5f03858E227fA8437e566a22
+ProxyCharityFund:0xf3B63a743aaDf87e242e29647FB5e734931701C1
+ProxyMarketingFund: 0x7b6b2a77B1871182523E2e72c4699FDBa28611bc
+ProxyCommunityEngagementFund: 0xe39974C9A25E414723d43335B0D49bED531d4dfF
+ProxyFutureFund: 0x1c917B2a99aa20577E5506D2F5eeb0687895582f
+ProxyTipsyCoin: 0xB1c11A8eC2C70A085957891688Af8Ed980E1A964
+ProxyBuyBack: 0x80007d1786b10F49066b6435D454175e558814dD
+
 
 ## BSC Mainnet Contract Addresses
+Addresses (Most useful)
+Mainnet Deployment Wallet: https://bscscan.com/address/0xbeefa0b80f7ac1f1a5b5a81c37289532c5d85e88
+Mainnet TipsyCoin Token Address (currently dummy logic, will be upgraded to final version soon): https://bscscan.com/address/0xe097bceb09bfb18047cf259f321cc129b7beba5e
+
+Addresses (Proxy Contract):
+
+Addresses (Base Contract):
+TokenHolder: 0x602943E003F0D263ebCC9Abdd64d209E1299e602
+TokenVesting: 0x924b6950583c5d7928f20dfc8a03fa0d180f80da
+
+
+
 GnosisSafe #1 -> (still yet to fully setup, will be 2 of 3) -> bnb:0x884C908ea193B0Bb39f6A03D8f61C938F862e153
+Constituent members:
+0x75bA26e94BC5261cABeC4B50208DF9e21b21245a
+0x95c486EdBaf1b71a3391dE71A1c724C415695E44
+0x5C39F4261b2292a4b0C778A10c555eDeFDFf54dA
 
 GnosisSafe #2 -> (still yet to full setup, will be 3 of 5) -> bnb:0xb4620C524245c584C5C2Ba79FD20CeB926FBd418
+Constituent members:
+0x75bA26e94BC5261cABeC4B50208DF9e21b21245a
+0x95c486EdBaf1b71a3391dE71A1c724C415695E44
+0x2acca9B9b3052C49f89b8ba16e7cEfF305017646
+0xF052482E025a056146d903a8802d04e7328543F5
+0x51E710c9186a343439a51a27ecf6756700df5075
 
-(todo)
+Team vesting beneficiaries (10% total supply over 12 months):
+0x623f8F73feEf78103E5D68fad95093274a17D58E
+0xD8BEab674E988d4626A0cd0854767c6D01919004
+0x75bA26e94BC5261cABeC4B50208DF9e21b21245a
+0xF052482E025a056146d903a8802d04e7328543F5
+0x51E710c9186a343439a51a27ecf6756700df5075
+0x05b41dc849615bB44161bdB8121478b5c85e1f39
+
+
+(still more todo)
