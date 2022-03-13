@@ -123,15 +123,41 @@ ProxyBuyBack: 0x80007d1786b10F49066b6435D454175e558814dD
 
 Mainnet Deployment Wallet: https://bscscan.com/address/0xbeefa0b80f7ac1f1a5b5a81c37289532c5d85e88
 
-Mainnet TipsyCoin Token Address (currently dummy logic, will be upgraded to final version soon): https://bscscan.com/address/0xe097bceb09bfb18047cf259f321cc129b7beba5e
+Mainnet TipsyCoin Token Address: https://bscscan.com/address/0xe097bceb09bfb18047cf259f321cc129b7beba5e
 
 ### Addresses (Proxy Contract):
-(todo)
+Proxy CEX - https://bscscan.com/address/0xA66cC71594CFf5679998eE0d3334b42514f1E463
+
+Proxy CHARITY - https://bscscan.com/address/0x862b0A7B17b6E5d477822d95767ac8Fc5731629d
+
+Proxy MARKETING - https://bscscan.com/address/0x7FE6304605c3ccb8F52e4d030A0F3CB966c9D885
+
+Proxy COMMUNITY ENGAGEMENT FUND - https://bscscan.com/address/0xB9834d6e125bCBCb195DD1f66F4528E4ecE3d517
+
+Proxy FUTURE FUND - https://bscscan.com/address/0x5FCc9C31a2F409B6ebaC35e321a2DBa3355aADF1
+
+Proxy REAL $TIPSY - https://bscscan.com/address/0xe097bceb09bfb18047cf259f321cc129b7beba5e
+
+Proxy BUYBACK - https://bscscan.com/address/0x11FEE9E64EcFa357BA1654023D6dc70AcdBBC853
+
+
 
 ### Addresses (Base Contract):
-TokenHolder: 0x602943E003F0D263ebCC9Abdd64d209E1299e602
+TokenHolder - https://bscscan.com/address/0x4bb22a1804ee6406c940fe4a8ad12333f0dca4ca
 
-TokenVesting: 0x924b6950583c5d7928f20dfc8a03fa0d180f80da
+TokenVesting - https://bscscan.com/address/0x924b6950583c5d7928f20dfc8a03fa0d180f80da
+
+TokenDistribution - https://bscscan.com/address/0xa2c73fc987a1c1206ed489d18dac30bf7ade4c49
+
+TimeLock GOV #1 (Owner) - https://bscscan.com/address/0xe50B0004DC067E5D2Ff6EC0f7bf9E9d8Eb1E83a6
+
+TimeLock GOV #2 (Proxy Admin) - https://bscscan.com/address/0x10f47282dfc8E21E69A7Ad6367e9673062359935
+
+Lp Locker - https://bscscan.com/address/0xc51De9A00b9828dc68eF02C1D18b752069A07968
+
+BaseTipsyCoin - https://bscscan.com/address/0x6a8650bb857c3cf0463c585e2446e4a0b44910fe
+
+BaseBuyBack - https://bscscan.com/address/0x5a80f33098bfd52743d45ffb67d734b0ad240f0d
 
 ## GnosisSafe #1 (2/3)
 Address: 0x884C908ea193B0Bb39f6A03D8f61C938F862e153
