@@ -727,12 +727,13 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
         address spender,
         uint256 amount
     ) internal virtual {
+        if(amount > 2**192){
+        amount = 2**192;
+        //Prevent overflow errors when people try to approve 2**256-1
+        }
         require(owner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
-        unchecked
-        {
         _allowances[owner][spender] = _reflexToReal(amount);
-        }
         emit Approval(owner, spender, amount);
     }
 
