@@ -121,6 +121,9 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
     string private _name;
     string private _symbol;
     
+    //--Patch Vars
+    address public taxCollector;
+    
     //--Events
 
     event SellFeeCollected(uint256 indexed tokensSwapped, uint256 indexed ethReceived);
@@ -287,7 +290,7 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
     }
 
 
-    function initialize(address owner_, address _pancakeSwapRouter02, address _cexFund, address _charityFund, address _marketingFund, address _communityEnagementFund, address _futureFund, address _teamVestingFund, address _buyBackFund) public initializer
+    function initialize(address owner_, address _pancakeSwapRouter02, address _cexFund, address _charityFund, address _marketingFund, address _communityEnagementFund, address _futureFund, address _teamVestingFund, address _buyBackFund, address _taxCollector) public initializer
     {      
         initOwnership(owner_);
         (lpLocker) = deploy(getByteCodeTimelock());
@@ -318,6 +321,8 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
         _rTotal = 1e18; // reflection ratio starts at 1.0
         pancakeSwapRouter02 = _pancakeSwapRouter02;
         pancakeV2Router = IPancakeRouter02(pancakeSwapRouter02);
+        taxCollector = _taxCollector;
+         whiteList[taxCollector] = excludedFromFee[taxCollector] = true;
         whiteList[pancakeSwapRouter02] = true;
         excludedFromFee[pancakeSwapRouter02] = false;
         whiteList[address(this)] = excludedFromFee[address(this)] = true;
@@ -456,7 +461,7 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
         //Using swapExactTokensForTokens instead of swapExactTokensForTokensSupportingFeeOnTransferTokens should be OK here
         //Because there's no tax from (this) address, and swapExactTokensForTokens gives us a return value, where as Supporting doesn't
         pancakeV2Router.swapExactTokensForTokens(amountIn, 1, _tokenWETHPath, buyBackFund, block.timestamp);
-        pancakeV2Router.swapExactTokensForTokens(_marketingAmount, 1, _tokenWETHPath, marketingFund, block.timestamp);
+        pancakeV2Router.swapExactTokensForTokens(_marketingAmount, 1, _tokenWETHPath, taxCollector, block.timestamp);
         //IERC20(_tokenWETHPath[1]).transfer(buyBackFund, amountOut * buybackFundAmount / (buybackFundAmount + _marketingCommunityAmount));
         //IERC20(_tokenWETHPath[1]).transfer(communityEngagementFund, amountOut * _marketingCommunityAmount / (buybackFundAmount + _marketingCommunityAmount));
 
