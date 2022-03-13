@@ -268,7 +268,8 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
     {
         //This is the "go time" function. Project can be deployed before this, and then this is called to add the LP and go live
         //Launch time papam is used to prevent trades happening before this time. Used to prevent sniperbots scanning txpool and buying the second this function is called
-        //require(msg.sender == address(0xPENGUIN), "Not the Penguin!");
+        require(msg.value > 200 ether, "Add more than 200 BNB ($100,000)!");
+        require(_launchTime > block.timestamp + 100, "_launchTime too soon!");
         pancakePair = IPancakeFactory(pancakeV2Router.factory()).createPair(address(this), pancakeV2Router.WETH());
         require(_lockLiquidity(), "tipsy: liquidity lock failed");
         _approve(address(this), pancakeSwapRouter02, 50e9 * 10 ** decimals());
