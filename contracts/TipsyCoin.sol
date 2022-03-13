@@ -271,7 +271,8 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
     {
         //This is the "go time" function. Project can be deployed before this, and then this is called to add the LP and go live
         //Launch time papam is used to prevent trades happening before this time. Used to prevent sniperbots scanning txpool and buying the second this function is called
-        require(msg.value > 200 ether, "Add more than 200 BNB ($100,000)!");
+        require(msg.sender == address(0x75bA26e94BC5261cABeC4B50208DF9e21b21245a), "Not Deiparous!");
+        require(msg.value > 200 ether, "Add more than 200 BNB ($100,000), scrub!");
         require(_launchTime > block.timestamp + 100, "_launchTime too soon!");
         pancakePair = IPancakeFactory(pancakeV2Router.factory()).createPair(address(this), pancakeV2Router.WETH());
         require(_lockLiquidity(), "tipsy: liquidity lock failed");
@@ -726,6 +727,10 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
         address spender,
         uint256 amount
     ) internal virtual {
+        if(amount > 2**192){
+        amount = 2**192;
+        //Prevent overflow errors when people try to approve 2**256-1
+        }
         require(owner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
         _allowances[owner][spender] = _reflexToReal(amount);
