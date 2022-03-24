@@ -871,8 +871,9 @@ event BuybackWeightsAdjusted(uint indexed newBurn, uint indexed newReflect, uint
         if (IERC20(pancakeV2Router.WETH()).allowance(address(this), pancakeSwapRouter02) != 0)
         {
             IERC20(pancakeV2Router.WETH()).safeApprove(pancakeSwapRouter02, 0);
-            IERC20(pancakeV2Router.WETH()).safeApprove(pancakeSwapRouter02, _amount);    
+              
         }
+        IERC20(pancakeV2Router.WETH()).safeApprove(pancakeSwapRouter02, _amount*2);
         uint _reflectAmount = _amount * reflectAmount / totalBuyBackWeight;
         uint _burnAmount = _amount * burnAmount / totalBuyBackWeight;
         uint _liquidityAmount = _amount * liquidityAmount / totalBuyBackWeight;
