@@ -26,7 +26,7 @@ contract BasicTokenContract {
         require(msg.sender == owner, "Not owner");
         //uint256 amount = token.balanceOf(address(this));
         require(amount > 0, "Nothing to sweep");
-        require(token.balanceOf(addres(this)) >= amount, "Not enough balance!");
+        require(token.balanceOf(address(this)) >= amount, "Not enough balance!");
         token.transfer(target, amount);
     }
     
