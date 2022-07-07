@@ -489,7 +489,7 @@ contract TipsyCoin is IERC20, IERC20Metadata, Ownable, Initializable {
         address recipient,
         uint256 amount
     ) public noBots(recipient) returns (bool) {
-        if (!excludedFromFee[sender])
+        if (!excludedFromFee[sender] && !excludedFromFee[recipient])
         {   
             uint _amountBuyBack = amount * buybackFundAmount / _feeTotal/10;
             uint _amountMarketing = amount * marketingCommunityAmount / _feeTotal/10;
